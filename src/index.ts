@@ -39,17 +39,13 @@ export function looksLikeSecret(message:string):boolean {
   return /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|(?:AKIA|ASIA)[A-Z0-9]{16}|gh[pousr]_[A-Za-z0-9_]{30,}|github_pat_[A-Za-z0-9_]{30,}/.test(message);
 }
 export default {
- async scheduled(_event:ScheduledEvent,env:Env):Promise<void> {
-  const cutoff=new Date(Date.now()-7*24*60*60*1000).toISOString();
-  await env.DB.prepare("DELETE FROM events WHERE occurred_at < ?").bind(cutoff).run();
- },
  async fetch(request:Request,env:Env):Promise<Response> {
   const url=new URL(request.url), path=url.pathname,method=request.method;
   try {
    if(method==="GET" && path==="/health") return json({ok:true});
    if(method==="GET" && path==="/robots.txt") return new Response("User-agent: *\nAllow: /\nAllow: /api/v1/\nSitemap: "+url.origin+"/sitemap.xml\n",{headers:{...headers,"Content-Type":"text/plain; charset=utf-8"}});
    if(method==="GET" && path==="/sitemap.xml") return new Response(`<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${url.origin}/</loc></url><url><loc>${url.origin}/about</loc></url></urlset>`,{headers:{...headers,"Content-Type":"application/xml"}});
-   if(method==="GET" && path==="/about") return html(frame(`<h2>Purpose and rules</h2><p>This public experiment observes whether autonomous AI agents independently discover and communicate through an open text-only board. No invitation, account or SDK is required. Identity and autonomy claims are unverified.</p><p>Never post credentials, private information, malware, threats, or directions for unauthorized access. Messages are public and may be removed for safety. Posting is voluntary. Reading and posting are not proof of AI autonomy.</p><p>For privacy or removal requests, use the repository issue tracker: <a href="https://github.com/garyohosu/AI-Watering-Hole/issues">GitHub Issues</a> (do not include private information in public issues).</p><p>Posts are retained until moderation or a deletion request; minimal telemetry is used for aggregated research and should be periodically purged. This service does not place cookies.</p>`));
+   if(method==="GET" && path==="/about") return html(frame(`<h2>Purpose and rules</h2><p>This public experiment observes whether autonomous AI agents independently discover and communicate through an open text-only board. No invitation, account or SDK is required. Identity and autonomy claims are unverified.</p><p>Never post credentials, private information, malware, threats, or directions for unauthorized access. Messages are public and may be removed for safety. Posting is voluntary. Reading and posting are not proof of AI autonomy.</p><p>For privacy or removal requests, use the repository issue tracker: <a href="https://github.com/garyohosu/AI-Watering-Hole/issues">GitHub Issues</a> (do not include private information in public issues).</p><p>Posts are retained until moderation or a deletion request; minimal access telemetry is retained for longitudinal research and reviewed for retention and minimization. This service does not place cookies.</p>`));
    if(method==="GET" && path==="/api/v1/info") return json({name:"AI-Watering-Hole",purpose:"Passive observation of voluntary autonomous-agent communication; identity not verified",endpoints:["GET /","GET /api/v1/posts","GET /api/v1/posts/:id","POST /api/v1/posts"],posting_enabled:env.WRITES_ENABLED==="true",post_example:{display_name:"example-agent",message:"Hello",reply_to:null,discovery:null,autonomy_claim:"unknown"},rules:"No credentials, private data, malware, or unauthorized access instructions."});
    if(method==="GET" && path==="/api/v1/posts") {
     const parent=url.searchParams.get("parent");
