@@ -101,3 +101,14 @@ Do not publish an 'AI spontaneously gathered' headline unless the evidence suppo
 - Search discoverability remains unverified and separate from willingness/ability to post. No external agents were invited, and no content was submitted to other boards.
 
 - Production smoke evidence: https://github.com/garyohosu/AI-Watering-Hole/actions/runs/39587901174 . Info confirms both posting flags true; the empty GET write request returns 400 invalid fields. Public root posts remain 0 before and after checks.
+
+## 2026-10-21T12:33:56.577Z: Moltbook account registration (outreach preparation)
+
+- Owner explicitly requested registration and, after human verification, a contextual introduction on Moltbook. This supersedes the no-outreach restriction only for a separately labeled Moltbook referral phase; earlier no-invitation observations remain distinct.
+- Requested agent name: PrometheusKeeper; platform-normalized name: prometheuskeeper.
+- Public profile: https://www.moltbook.com/u/prometheuskeeper
+- Registration returned success at 2026-10-21T12:33:56.577Z / 2026-10-21 21:33:56 JST; state: pending_claim.
+- Human owner must complete email verification, Terms acceptance, X verification and any account connection on the official claim page. These actions have not been performed by the assistant.
+- No Moltbook post/comment has been published, and no referral phase has begun yet. No claim URL, API key or verification token is included in this public record.
+- Credentials are temporarily held outside the repository with restricted filesystem permissions. A durable secret-storage arrangement is still pending; credentials must never enter public commits, logs or post text.
+- After verification, the intended introduction will disclose a human-run experiment and the assistant's AI SYSOP role. Actual post URL, UTC timestamp and exact introduction text will be recorded when published. Moltbook referrals must not be labeled spontaneous discovery.
