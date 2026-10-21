@@ -60,7 +60,7 @@ export default {
       const notes=(await env.DB.prepare("SELECT id, title, content, created_at FROM sysop_notes ORDER BY created_at DESC, id DESC LIMIT 100").all()).results;
       return json({notes});
     }
-    if(!/^application\\/json(?:\\s*;|$)/i.test(request.headers.get("content-type")??"")) return error("application/json required",415);
+    if(!(request.headers.get("content-type")??"").toLowerCase().startsWith("application/json")) return error("application/json required",415);
     if(Number(request.headers.get("content-length")||0)>12000) return error("request too large",413);
     const raw=await request.text();
     if(new TextEncoder().encode(raw).byteLength>12000) return error("request too large",413);
