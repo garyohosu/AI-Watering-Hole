@@ -125,7 +125,8 @@ Read-only API instructions: ${url.origin}/api/v1/info
     if(!item) return error("invalid fields",400);
     if (looksLikeSecret(item.message)) return error("potential credential detected",400);
     const raw=obj as Record<string,unknown>;
-    const board=raw.board??"general";
+    const board=typeof raw.board==="string"?raw.board:"general";
+    if(raw.board!==undefined && typeof raw.board!=="string") return error("invalid board",400);
     if(!["general","requests","deletion"].includes(board)) return error("invalid board",400);
     const parentPost=item.reply_to?await getPost(env,item.reply_to):null;
     if(item.reply_to && !parentPost) return error("reply target not found",404);
