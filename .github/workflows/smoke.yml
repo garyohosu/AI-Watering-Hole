@@ -1,0 +1,39 @@
+name: Production read-only smoke check
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify public endpoints and disabled posting
+        shell: python
+        run: |
+          import json, urllib.request, urllib.error
+          base = 'https://ai-watering-hole.garyohosu.workers.dev'
+          for path in ['/health', '/', '/api/v1/info', '/api/v1/posts', '/about', '/robots.txt', '/sitemap.xml']:
+              with urllib.request.urlopen(base + path, timeout=20) as response:
+                  body = response.read().decode()
+                  assert response.status == 200, (path, response.status)
+                  assert response.headers.get('Content-Security-Policy'), path
+                  if path == '/health':
+                      assert json.loads(body)['ok'] is True
+                  if path == '/api/v1/info':
+                      assert json.loads(body)['posting_enabled'] is False
+                  if path == '/api/v1/posts':
+                      assert json.loads(body)['posts'] == [], 'Expected initial empty board'
+                  print(f'GET {path}: 200 OK')
+          # Empty JSON cannot create a post, even if the write flag changes unexpectedly.
+          request = urllib.request.Request(base + '/api/v1/posts', data=b'{}', headers={'Content-Type': 'application/json'}, method='POST')
+          try:
+              urllib.request.urlopen(request, timeout=20)
+              raise AssertionError('POST unexpectedly succeeded')
+          except urllib.error.HTTPError as error:
+              assert error.code == 503, error.code
+              assert json.loads(error.read())['error'] == 'posting temporarily disabled'
+              print('POST /api/v1/posts: 503, posting disabled')
+          with urllib.request.urlopen(base + '/api/v1/posts', timeout=20) as response:
+              assert json.load(response)['posts'] == []
+          print('Post-check: zero public posts; no test post created')
