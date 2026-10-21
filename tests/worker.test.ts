@@ -25,7 +25,7 @@ describe("worker API",()=>{
   expect(await (await worker.fetch(new Request(base+"/"),env)).text()).toContain("No public posts yet");
   expect((await (await worker.fetch(new Request(base+"/api/v1/info"),env)).json() as any).posting_enabled).toBe(false);
  });
- it("does not write through GET",async()=>{
+ it("keeps the GET list endpoint read-only",async()=>{
   const {env,posts}=mockEnv("true");
   const res=await worker.fetch(new Request(base+"/api/v1/posts?message=hello"),env);
   expect(res.status).toBe(200);expect(posts).toHaveLength(0);
@@ -57,5 +57,47 @@ describe("worker API",()=>{
   const res=await worker.fetch(new Request(base+"/api/v1/posts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:"-----BEGIN PRIVATE KEY-----"})}),env);
   expect(res.status).toBe(400);
   expect(looksLikeSecret("ordinary message")).toBe(false);
+ });
+});
+
+describe("explicit GET posting",()=>{
+ const path="/api/v1/post?submit=1&";
+ it("creates a post and reply using GET with shared validation",async()=>{
+  const {env,posts}=mockEnv("true");
+  const first=await worker.fetch(new Request(base+path+new URLSearchParams({message:"日本語 & hello",display_name:"visitor"})),env);
+  expect(first.status).toBe(201);
+  const id=(await first.json() as any).id;
+  expect((await worker.fetch(new Request(base+path+new URLSearchParams({message:"reply",reply_to:id})),env)).status).toBe(201);
+  expect(posts).toHaveLength(2);expect(posts[0].body).toBe("日本語 & hello");expect(posts[1].parent_id).toBe(id);
+  expect(first.headers.get("Cache-Control")).toBe("no-store");
+ });
+ it("requires explicit intent and a valid message",async()=>{
+  const {env,posts}=mockEnv("true");
+  for(const query of ["", "?message=hello", "?submit=1", "?submit=1&message=", "?submit=1&message=a&message=b"])
+   expect((await worker.fetch(new Request(base+"/api/v1/post"+query),env)).status).toBe(400);
+  expect(posts).toHaveLength(0);
+ });
+ it("shares the emergency switch and IP rate limit",async()=>{
+  const disabled=mockEnv();expect((await worker.fetch(new Request(base+path+"message=hello"),disabled.env)).status).toBe(503);
+  const {env,posts}=mockEnv("true");env.POST_LIMITER.limit.mockResolvedValue({success:false});
+  expect((await worker.fetch(new Request(base+path+"message=hello",{headers:{"CF-Connecting-IP":"192.0.2.1"}}),env)).status).toBe(429);expect(posts).toHaveLength(0);
+ });
+ it("refuses prefetch and image loads",async()=>{
+  const {env,posts}=mockEnv("true");
+  for(const headers of ([{"sec-purpose":"prefetch"},{"purpose":"preview"},{"sec-fetch-dest":"image"}] as Record<string,string>[]))
+   expect((await worker.fetch(new Request(base+path+"message=hello",{headers}),env)).status).toBe(403);
+  expect(posts).toHaveLength(0);
+ });
+ it("rejects oversized URLs, secrets and missing reply targets",async()=>{
+  const {env,posts}=mockEnv("true");
+  expect((await worker.fetch(new Request(base+path+"message="+"x".repeat(8200)),env)).status).toBe(414);
+  expect((await worker.fetch(new Request(base+path+new URLSearchParams({message:"-----BEGIN PRIVATE KEY-----"})),env)).status).toBe(400);
+  expect((await worker.fetch(new Request(base+path+new URLSearchParams({message:"reply",reply_to:crypto.randomUUID()})),env)).status).toBe(404);
+  expect(posts).toHaveLength(0);
+ });
+ it("advertises GET writes as text without executable write links",async()=>{
+  const {env}=mockEnv("true");const info=await (await worker.fetch(new Request(base+"/api/v1/info"),env)).json() as any;
+  expect(info.get_posting_enabled).toBe(true);expect(info.get_posting_notice).toContain("submit=1");
+  const home=await (await worker.fetch(new Request(base+"/"),env)).text();expect(home).not.toContain('href="/api/v1/post?');
  });
 });

@@ -25,6 +25,7 @@ jobs:
                       assert json.loads(body)['ok'] is True
                   if path == '/api/v1/info':
                       assert json.loads(body)['posting_enabled'] is True
+                      assert json.loads(body)['get_posting_enabled'] is True
                   if path == '/api/v1/posts':
                       print('Visible root posts:', len(json.loads(body)['posts']))
                   print(f'GET {path}: 200 OK')
@@ -39,4 +40,11 @@ jobs:
               print('POST /api/v1/posts: 400, invalid empty submission rejected')
           with urllib.request.urlopen(base + '/api/v1/posts', timeout=20) as response:
               print('Visible root posts after check:', len(json.load(response)['posts']))
+          try:
+              urllib.request.urlopen(base + '/api/v1/post?submit=1', timeout=20)
+              raise AssertionError('Empty GET submission unexpectedly succeeded')
+          except urllib.error.HTTPError as error:
+              assert error.code == 400, error.code
+              assert json.loads(error.read())['error'] == 'invalid fields'
+              print('GET write route: 400 for absent message; no post created')
           print('Post-check: no valid test submission sent; no seeded post created')

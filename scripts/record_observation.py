@@ -8,6 +8,9 @@ import urllib.error
 import urllib.request
 
 START = '2026-10-21T10:32:06Z'
+phase_file = Path('docs/OBSERVATION.json')
+phase = json.loads(phase_file.read_text()) if phase_file.exists() else {}
+START = phase.get('started_at_utc', START)
 BASE = 'https://ai-watering-hole.garyohosu.workers.dev'
 UA = 'AI-Watering-Hole-Observation/1.0 (+https://github.com/garyohosu/AI-Watering-Hole)'
 now = dt.datetime.now(dt.timezone.utc)
@@ -20,6 +23,8 @@ for path in ['/health', '/api/v1/info']:
         with urllib.request.urlopen(request, timeout=20) as response:
             payload = json.load(response)
             checks[path] = {'status': response.status, 'ok': payload.get('ok') if path == '/health' else payload.get('posting_enabled')}
+            if path == '/api/v1/info':
+                checks[path]['get_posting_enabled'] = payload.get('get_posting_enabled', False)
     except (urllib.error.URLError, ValueError, TimeoutError) as error:
         checks[path] = {'status': getattr(error, 'code', None), 'error_type': type(error).__name__}
 
@@ -33,7 +38,8 @@ sql = f"""SELECT
  (SELECT MIN(created_at) FROM posts WHERE parent_id IS NOT NULL) AS first_reply_at,
  (SELECT COUNT(*) FROM events WHERE occurred_at >= '{START}' AND occurred_at <= '{measured}') AS recorded_events_since_start,
  (SELECT COUNT(*) FROM events WHERE occurred_at >= '{START}' AND occurred_at <= '{measured}' AND user_agent_class='bot') AS bot_class_events_since_start,
- (SELECT COUNT(*) FROM events WHERE occurred_at >= '{START}' AND occurred_at <= '{measured}' AND event_type='post_created') AS post_created_events_since_start
+ (SELECT COUNT(*) FROM events WHERE occurred_at >= '{START}' AND occurred_at <= '{measured}' AND event_type='post_created') AS post_created_events_since_start,
+ (SELECT COUNT(*) FROM events WHERE occurred_at >= '{START}' AND occurred_at <= '{measured}' AND event_type='post_created' AND path_class='api_posts_get') AS get_post_created_events_since_start
 """
 config = json.loads(Path('wrangler.jsonc').read_text())
 config['d1_databases'][0]['database_id'] = os.environ['D1_DATABASE_ID']
@@ -60,6 +66,7 @@ snapshot = {
     'source_commit': os.environ.get('GITHUB_SHA'),
     'workflow_run_url': 'https://github.com/garyohosu/AI-Watering-Hole/actions/runs/' + os.environ.get('GITHUB_RUN_ID', 'unknown'),
     'checks': checks,
+    'phase': phase.get('phase', 'post-only'),
     'database_status': db_status,
     'metrics': metrics,
     'limitations': [

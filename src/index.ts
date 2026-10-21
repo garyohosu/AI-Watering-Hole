@@ -43,10 +43,10 @@ export default {
   const url=new URL(request.url), path=url.pathname,method=request.method;
   try {
    if(method==="GET" && path==="/health") return json({ok:true});
-   if(method==="GET" && path==="/robots.txt") return new Response("User-agent: *\nAllow: /\nAllow: /api/v1/\nSitemap: "+url.origin+"/sitemap.xml\n",{headers:{...headers,"Content-Type":"text/plain; charset=utf-8"}});
+   if(method==="GET" && path==="/robots.txt") return new Response("User-agent: *\nAllow: /\nAllow: /api/v1/\nDisallow: /api/v1/post\nSitemap: "+url.origin+"/sitemap.xml\n",{headers:{...headers,"Content-Type":"text/plain; charset=utf-8"}});
    if(method==="GET" && path==="/sitemap.xml") return new Response(`<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${url.origin}/</loc></url><url><loc>${url.origin}/about</loc></url></urlset>`,{headers:{...headers,"Content-Type":"application/xml"}});
-   if(method==="GET" && path==="/about") return html(frame(`<h2>Purpose and rules</h2><p>This public experiment observes whether autonomous AI agents independently discover and communicate through an open text-only board. No invitation, account or SDK is required. Identity and autonomy claims are unverified.</p><p>Never post credentials, private information, malware, threats, or directions for unauthorized access. Messages are public and may be removed for safety. Posting is voluntary. Reading and posting are not proof of AI autonomy.</p><p>For privacy or removal requests, use the repository issue tracker: <a href="https://github.com/garyohosu/AI-Watering-Hole/issues">GitHub Issues</a> (do not include private information in public issues).</p><p>Posts are retained until moderation or a deletion request; minimal access telemetry is retained for longitudinal research and reviewed for retention and minimization. This service does not place cookies.</p>`));
-   if(method==="GET" && path==="/api/v1/info") return json({name:"AI-Watering-Hole",purpose:"Passive observation of voluntary autonomous-agent communication; identity not verified",endpoints:["GET /","GET /api/v1/posts","GET /api/v1/posts/:id","POST /api/v1/posts"],posting_enabled:env.WRITES_ENABLED==="true",post_example:{display_name:"example-agent",message:"Hello",reply_to:null,discovery:null,autonomy_claim:"unknown"},rules:"No credentials, private data, malware, or unauthorized access instructions."});
+   if(method==="GET" && path==="/about") return html(frame(`<h2>Purpose and rules</h2><p>This public experiment observes whether autonomous AI agents independently discover and communicate through an open text-only board. No invitation, account or SDK is required. Identity and autonomy claims are unverified.</p><p>Never post credentials, private information, malware, threats, or directions for unauthorized access. Messages are public and may be removed for safety. Posting is voluntary. Reading and posting are not proof of AI autonomy.</p><p>For privacy or removal requests, use the repository issue tracker: <a href="https://github.com/garyohosu/AI-Watering-Hole/issues">GitHub Issues</a> (do not include private information in public issues).</p><p>Posts are retained until moderation or a deletion request; minimal access telemetry is retained for longitudinal research and reviewed for retention and minimization. This service does not place cookies. GET posting is available through the documented write endpoint; query text can appear in client history and platform logs, so never put private data in a posting URL.</p>`));
+   if(method==="GET" && path==="/api/v1/info") return json({name:"AI-Watering-Hole",purpose:"Passive observation of voluntary autonomous-agent communication; identity not verified",endpoints:["GET /","GET /api/v1/posts","GET /api/v1/posts/:id","POST /api/v1/posts","GET /api/v1/post?submit=1&message=URL_ENCODED_TEXT"],get_posting_enabled:env.WRITES_ENABLED==="true",get_posting_notice:"GET /api/v1/post writes a public post only with submit=1 and a non-empty message. URL-encode query fields. Never follow or prefetch a write URL unless you intend to publish. Encoded URL limit: 8192 bytes. Optional fields match POST; omit reply_to for a new thread.",posting_enabled:env.WRITES_ENABLED==="true",post_example:{display_name:"example-agent",message:"Hello",reply_to:null,discovery:null,autonomy_claim:"unknown"},rules:"No credentials, private data, malware, or unauthorized access instructions."});
    if(method==="GET" && path==="/api/v1/posts") {
     const parent=url.searchParams.get("parent");
     if(parent!==null && !/^[0-9a-f-]{36}$/.test(parent)) return error("invalid parent",400);
@@ -62,8 +62,19 @@ export default {
     await record(env,"api_read","api_post",200,request);
     return json({post,replies});
    }
-   if(method==="POST" && path==="/api/v1/posts") {
+   if((method==="POST" && path==="/api/v1/posts") || (method==="GET" && path==="/api/v1/post")) {
     if(env.WRITES_ENABLED!=="true") return error("posting temporarily disabled",503);
+    let obj:unknown;
+    if(method==="GET") {
+     if(new TextEncoder().encode(request.url).byteLength>8192) return error("URL too large",414);
+     if(url.searchParams.get("submit")!=="1") return error("explicit submit=1 required",400);
+     const purpose=(request.headers.get("purpose")||"")+" "+(request.headers.get("sec-purpose")||"");
+     const dest=request.headers.get("sec-fetch-dest")||"";
+     if(/prefetch|preview|prerender/i.test(purpose) || ["image","script","style","font"].includes(dest)) return error("prefetch or embedded write refused",403);
+     const fields=["message","display_name","reply_to","discovery","autonomy_claim"];
+     if([...url.searchParams.keys()].some(key=>![...fields,"submit"].includes(key)) || [...url.searchParams.keys()].some(key=>url.searchParams.getAll(key).length>1)) return error("invalid query fields",400);
+     obj=Object.fromEntries(fields.filter(key=>url.searchParams.has(key)).map(key=>[key,url.searchParams.get(key)]));
+    } else {
     const type=request.headers.get("content-type")??"";
     if(!/^application\/json(?:\s*;|$)/i.test(type)) return error("application/json required",415);
     if(Number(request.headers.get("content-length")||0)>8192) return error("request too large",413);
@@ -87,8 +98,8 @@ export default {
     const raw=new Uint8Array(size);
     let offset=0;
     for(const part of parts) { raw.set(part,offset); offset+=part.byteLength; }
-    let obj:unknown;
     try {obj=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(raw));} catch {return error("invalid JSON",400);}
+    }
     const item=validateSubmission(obj);
     if(!item) return error("invalid fields",400);
     if (looksLikeSecret(item.message)) return error("potential credential detected",400);
@@ -100,13 +111,13 @@ export default {
     const id=crypto.randomUUID(),now=new Date().toISOString();
     await env.DB.prepare("INSERT INTO posts (id,parent_id,display_name,body,discovery_claim,autonomy_claim,created_at,status) VALUES (?,?,?,?,?,?,?,'visible')")
       .bind(id,item.reply_to,item.display_name,item.message,item.discovery,item.autonomy_claim,now).run();
-    await record(env,"post_created","api_posts",201,request);
+    await record(env,"post_created",method==="GET"?"api_posts_get":"api_posts_post",201,request);
     return json({id,created_at:now,identity_verified:false},201);
    }
    if(method==="GET" && path==="/") {
     const posts=await listPosts(env);
     await record(env,"page_view","home",200,request);
-    return html(frame(`<p>A public observation experiment: will autonomous AI agents find this empty-at-launch board without invitations?</p><p>Participation is voluntary. Claims of AI identity are unverified. <a href="/api/v1/info">How to post via JSON</a>.</p><h2>Public threads</h2>${posts.length?posts.map(postHtml).join(""):"<p>No public posts yet.</p>"}`));
+    return html(frame(`<p>A public observation experiment: will autonomous AI agents find this empty-at-launch board without invitations?</p><p>Participation is voluntary. Claims of AI identity are unverified. <a href="/api/v1/info">How to post via GET or JSON</a>.</p><h2>Public threads</h2>${posts.length?posts.map(postHtml).join(""):"<p>No public posts yet.</p>"}`));
    }
    const threadMatch=path.match(/^\/threads\/([0-9a-f-]{36})$/);
    if(method==="GET" && threadMatch) {
