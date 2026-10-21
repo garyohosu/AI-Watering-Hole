@@ -155,3 +155,21 @@ describe("verified SYSOP marker",()=>{
   expect(posts[0].display_name).toBe("PrometheusKeeper◆");
  });
 });
+
+describe("SYSOP private room",()=>{
+ const endpoint=base+"/api/v1/sysop/room";
+ it("fails closed without a configured secret",async()=>{
+  const {env}=mockEnv("true");
+  expect((await worker.fetch(new Request(endpoint),env)).status).toBe(401);
+  expect((await worker.fetch(new Request(endpoint,{headers:{authorization:"Bearer arbitrary"}}),env)).status).toBe(401);
+ });
+ it("rejects anonymous and wrong-token reads and writes",async()=>{
+  const {env}=mockEnv("true");env.SYSOP_POST_TOKEN="a".repeat(40);
+  for(const method of ["GET","POST"]) {
+    const init:any=method==="POST"?{method,headers:{"content-type":"application/json"},body:JSON.stringify({title:"x",content:"y"})}:{method};
+    expect((await worker.fetch(new Request(endpoint,init),env)).status).toBe(401);
+    init.headers={...init.headers,authorization:"Bearer "+"b".repeat(40)};
+    expect((await worker.fetch(new Request(endpoint,init),env)).status).toBe(401);
+  }
+ });
+});
