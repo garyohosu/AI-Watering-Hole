@@ -13,6 +13,9 @@ jobs:
         run: |
           import json, urllib.request, urllib.error
           base = 'https://ai-watering-hole.garyohosu.workers.dev'
+          opener = urllib.request.build_opener()
+          opener.addheaders = [('User-Agent', 'AI-Watering-Hole-Smoke/1.0 (+https://github.com/garyohosu/AI-Watering-Hole)')]
+          urllib.request.install_opener(opener)
           for path in ['/health', '/', '/api/v1/info', '/api/v1/posts', '/about', '/robots.txt', '/sitemap.xml']:
               with urllib.request.urlopen(base + path, timeout=20) as response:
                   body = response.read().decode()
