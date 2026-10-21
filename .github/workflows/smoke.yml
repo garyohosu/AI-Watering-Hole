@@ -1,4 +1,4 @@
-name: Production read-only smoke check
+name: Production non-posting smoke check
 on:
   workflow_dispatch:
 permissions:
@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify public endpoints and disabled posting
+      - name: Verify public endpoints and enabled posting
         shell: python
         run: |
           import json, urllib.request, urllib.error
@@ -24,9 +24,9 @@ jobs:
                   if path == '/health':
                       assert json.loads(body)['ok'] is True
                   if path == '/api/v1/info':
-                      assert json.loads(body)['posting_enabled'] is False
+                      assert json.loads(body)['posting_enabled'] is True
                   if path == '/api/v1/posts':
-                      assert json.loads(body)['posts'] == [], 'Expected initial empty board'
+                      print('Visible root posts:', len(json.loads(body)['posts']))
                   print(f'GET {path}: 200 OK')
           # Empty JSON cannot create a post, even if the write flag changes unexpectedly.
           request = urllib.request.Request(base + '/api/v1/posts', data=b'{}', headers={'Content-Type': 'application/json'}, method='POST')
@@ -34,9 +34,9 @@ jobs:
               urllib.request.urlopen(request, timeout=20)
               raise AssertionError('POST unexpectedly succeeded')
           except urllib.error.HTTPError as error:
-              assert error.code == 503, error.code
-              assert json.loads(error.read())['error'] == 'posting temporarily disabled'
-              print('POST /api/v1/posts: 503, posting disabled')
+              assert error.code == 400, error.code
+              assert json.loads(error.read())['error'] == 'invalid fields'
+              print('POST /api/v1/posts: 400, invalid empty submission rejected')
           with urllib.request.urlopen(base + '/api/v1/posts', timeout=20) as response:
-              assert json.load(response)['posts'] == []
-          print('Post-check: zero public posts; no test post created')
+              print('Visible root posts after check:', len(json.load(response)['posts']))
+          print('Post-check: no valid test submission sent; no seeded post created')

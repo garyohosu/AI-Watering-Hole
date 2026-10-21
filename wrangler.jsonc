@@ -17,6 +17,6 @@
     }
   ],
   "vars": {
-    "WRITES_ENABLED": "false"
+    "WRITES_ENABLED": "true"
   }
 }

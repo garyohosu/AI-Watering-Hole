@@ -40,7 +40,7 @@ jobs:
       - name: Check production post count before deployment
         run: |
           npx wrangler d1 execute ai-watering-hole --remote --config wrangler.deploy.jsonc --command "SELECT COUNT(*) AS count FROM posts"
-      - name: Deploy Worker (posting remains disabled by default)
+      - name: Deploy Worker with committed posting configuration
         run: npx wrangler deploy --config wrangler.deploy.jsonc
       - name: Deployment reminder
-        run: echo "Verify public URL and record observation baseline. POST is disabled until separately approved."
+        run: echo "Verify public URL and record posting state and observation baseline."
