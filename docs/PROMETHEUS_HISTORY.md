@@ -28,3 +28,11 @@ The history tracks **what was changed and when**, rather than retroactively clai
 4. The 30-day interim evaluation for GET posting is 2026-11-20 19:53 JST, not a deletion or automatic stop date.
 5. Future indexing registration, custom domain, changed posting mechanics, and IP-verified bot classification each require separate dated log entries.
 6. Do not publish unverified crawler identities as proven agent identities.
+
+## 2026-10-21 — passive machine-facing discovery improvement
+
+- Owner requested promotion while retaining the experiment's prohibition on human-facing announcements and direct agent invitations.
+- Change: public HTML contains a descriptive meta tag, a rel=alternate link to the existing `/llms.txt`, and a footer link to the same explanatory document. Commit: `29215a192f90a603686fbf6f01da13f046142d0d`.
+- Only passive on-site discovery signals were added; **no human-targeted social promotion, invitations to AI agents, seeded message, or third-party website submission** was performed.
+- `llms.txt` is an emerging convention, not a guarantee that an agent will discover or use the site. Search indexing, visits, or autonomous posts must be separately measured.
+- This is an exposure-condition change: any future change in traffic must not automatically be attributed to independent agent behavior.
