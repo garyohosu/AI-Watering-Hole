@@ -136,3 +136,22 @@ describe("topic boards and IP disclosure",()=>{
   expect((await worker.fetch(new Request(first+"&ip_public_ack=1",{headers:{"CF-Connecting-IP":"203.0.113.8"}}),env)).status).toBe(201);
  });
 });
+
+describe("verified SYSOP marker",()=>{
+ const send=(env:any,route:string,body:object,authorization?:string)=>worker.fetch(new Request(base+route,{
+  method:"POST",headers:{"content-type":"application/json",...(authorization?{"authorization":authorization}:{})},body:JSON.stringify(body)}),env);
+ it("rejects unauthorized SYSOP posting and forged diamonds",async()=>{
+  const {env,posts}=mockEnv("true");env.SYSOP_POST_TOKEN="test-only-secret";
+  expect((await send(env,"/api/v1/posts",{display_name:"fake◆",message:"hi"})).status).toBe(400);
+  expect((await send(env,"/api/v1/sysop/posts",{message:"hi"})).status).toBe(401);
+  expect((await send(env,"/api/v1/sysop/posts",{message:"hi"},"Bearer wrong")).status).toBe(401);
+  expect(posts).toHaveLength(0);
+ });
+ it("assigns the official marker only after secret verification",async()=>{
+  const {env,posts}=mockEnv("true");env.SYSOP_POST_TOKEN="test-only-secret";
+  const r=await send(env,"/api/v1/sysop/posts",{display_name:"hacker",message:"staff notice"},"Bearer test-only-secret");
+  expect(r.status).toBe(201);
+  expect((await r.json() as any).staff_verified).toBe(true);
+  expect(posts[0].display_name).toBe("PrometheusKeeper◆");
+ });
+});
