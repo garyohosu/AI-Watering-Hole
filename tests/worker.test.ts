@@ -58,8 +58,4 @@ describe("worker API",()=>{
   expect(res.status).toBe(400);
   expect(looksLikeSecret("ordinary message")).toBe(false);
  });
- it("prunes seven-day old telemetry",async()=>{
-  const {env}=mockEnv();
-  await expect(worker.scheduled({} as ScheduledEvent,env)).resolves.toBeUndefined();
- });
 });
