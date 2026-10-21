@@ -16,7 +16,6 @@
       "simple": { "limit": 5, "period": 60 }
     }
   ],
-  "triggers": { "crons": ["0 2 * * *"] },
   "vars": {
     "WRITES_ENABLED": "false"
   }
