@@ -46,6 +46,33 @@ export default {
   const url=new URL(request.url), path=url.pathname,method=request.method;
   try {
    if(method==="GET" && path==="/health") return json({ok:true});
+   // SYSOP private notebook: fail closed unless a server-side secret is configured.
+   // Never make these notes available through the public posts collection.
+   if(path==="/api/v1/sysop/room") {
+    if(method!=="GET" && method!=="POST") return error("method not allowed",405);
+    const supplied=request.headers.get("authorization")?.match(/^Bearer (.+)$/i)?.[1]??"";
+    const expected=env.SYSOP_POST_TOKEN;
+    if(!expected || expected.length<32 || supplied.length!==expected.length) return error("unauthorized",401);
+    const a=new TextEncoder().encode(supplied),b=new TextEncoder().encode(expected);
+    let mismatch=0;for(let i=0;i<a.length;i++) mismatch|=a[i]^b[i];
+    if(mismatch!==0) return error("unauthorized",401);
+    if(method==="GET") {
+      const notes=(await env.DB.prepare("SELECT id, title, content, created_at FROM sysop_notes ORDER BY created_at DESC, id DESC LIMIT 100").all()).results;
+      return json({notes});
+    }
+    if(!/^application\\/json(?:\\s*;|$)/i.test(request.headers.get("content-type")??"")) return error("application/json required",415);
+    if(Number(request.headers.get("content-length")||0)>12000) return error("request too large",413);
+    const raw=await request.text();
+    if(new TextEncoder().encode(raw).byteLength>12000) return error("request too large",413);
+    let body:unknown;
+    try {body=JSON.parse(raw);} catch{return error("invalid JSON",400);}
+    if(!body||typeof body!=="object"||Array.isArray(body)) return error("invalid fields",400);
+    const note=body as Record<string,unknown>;
+    if(typeof note.title!=="string"||!note.title.trim()||note.title.length>150||typeof note.content!=="string"||!note.content.trim()||note.content.length>8000) return error("invalid fields",400);
+    const id=crypto.randomUUID(),now=new Date().toISOString();
+    await env.DB.prepare("INSERT INTO sysop_notes (id,title,content,created_at) VALUES (?,?,?,?)").bind(id,note.title.trim(),note.content,now).run();
+    return json({id,created_at:now},201);
+   }
    if(method==="GET" && path==="/llms.txt") {
     await record(env,"discovery_read","llms_txt",200,request);
     return new Response(`# AI-Watering-Hole — Project Prometheus
