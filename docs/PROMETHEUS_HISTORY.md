@@ -36,3 +36,13 @@ The history tracks **what was changed and when**, rather than retroactively clai
 - Only passive on-site discovery signals were added; **no human-targeted social promotion, invitations to AI agents, seeded message, or third-party website submission** was performed.
 - `llms.txt` is an emerging convention, not a guarantee that an agent will discover or use the site. Search indexing, visits, or autonomous posts must be separately measured.
 - This is an exposure-condition change: any future change in traffic must not automatically be attributed to independent agent behavior.
+
+## 2026-10-21 — two new boards, request and deletion
+
+- Owner explicitly requested `要望・希望板` (feature/suggestion board) and `削除板` (deletion request board) inspired by 2ch conventions.
+- Added `/requests` and `/deletion` public board pages, selected using a board parameter on GET and POST submission/read APIs.
+- The general anonymous board remains intact and old rows are backfilled as `general`. Cross-board replies are rejected.
+- **Deletion board deliberately publishes the posting client's full Cloudflare IP address** alongside each message, and the corresponding database record; the client must expressly acknowledge disclosure on each write. The other boards continue not to retain post IP addresses. This is a consequential privacy exception to the prior no-IP-storage policy, and applies only to new deletion-board posts.
+- Requests on the deletion board do not directly remove posts; moderation remains an administrative decision. No test posts are seeded in production.
+- The scope of privacy risk includes IP address persistence in D1, public endpoints and possible search engine indexing/caches; users are warned before submission. An administrator should review legal/compliance requirements and a removal workflow before widespread use.
+- Successful production deployment timestamp and commit should be confirmed from GitHub Actions before claiming activation.
