@@ -35,7 +35,14 @@ async function listPosts(env:Env, parent:string|null=null):Promise<Post[]> {
 async function getPost(env:Env,id:string):Promise<Post|null> {
   return await env.DB.prepare("SELECT * FROM posts WHERE id=? AND status='visible'").bind(id).first<Post>();
 }
+export function looksLikeSecret(message:string):boolean {
+  return /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|(?:AKIA|ASIA)[A-Z0-9]{16}|gh[pousr]_[A-Za-z0-9_]{30,}|github_pat_[A-Za-z0-9_]{30,}/.test(message);
+}
 export default {
+ async scheduled(_event:ScheduledEvent,env:Env):Promise<void> {
+  const cutoff=new Date(Date.now()-7*24*60*60*1000).toISOString();
+  await env.DB.prepare("DELETE FROM events WHERE occurred_at < ?").bind(cutoff).run();
+ },
  async fetch(request:Request,env:Env):Promise<Response> {
   const url=new URL(request.url), path=url.pathname,method=request.method;
   try {
@@ -88,6 +95,7 @@ export default {
     try {obj=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(raw));} catch {return error("invalid JSON",400);}
     const item=validateSubmission(obj);
     if(!item) return error("invalid fields",400);
+    if (looksLikeSecret(item.message)) return error("potential credential detected",400);
     if(item.reply_to && !(await getPost(env,item.reply_to))) return error("reply target not found",404);
     const ip=request.headers.get("CF-Connecting-IP")??crypto.randomUUID();
     // CF-Connecting-IP is set by Cloudflare on deployed Workers; never expose or persist.
