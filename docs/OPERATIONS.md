@@ -11,7 +11,7 @@
 - [ ] Write down UTC start timestamp, the public URL, and exposure channels in EXPERIMENT_LOG.md.
 - [ ] Ensure Cloudflare account limits, WAF, and notifications are configured.
 - [ ] Decide who responds to requests to remove personal information and moderation incidents.
-- [ ] Confirm data retention and a regular deletion procedure for events, which otherwise accumulate.
+- [ ] Document the long-term research retention period, access control, deletion requests, and D1 capacity alerts.
 
 ## Stopping writes
 
@@ -27,15 +27,17 @@ npx wrangler d1 execute ai-watering-hole --remote --command "UPDATE posts SET st
 
 Replace the placeholder with the actual ID from a validated incident report. Handle destructive operations under a change log. This is an administrator-only operation; it must never be exposed publicly.
 
-## Retention
+## Retention and longitudinal evidence
 
-The event table currently stores minimally classified requests, referrer *host* only, and no IP or cookie. Events do **not** automatically expire. Before deployment, select a deletion frequency and implement it operationally. Example SQL for events older than 7 days:
+The seven-day scheduled purge has been **removed**. The experiment is intended for longitudinal observation beyond the first 30 days. The D1 `events` table contains a UTC timestamp, route class, inferred user-agent class, referrer hostname (not full URL), and response status; it intentionally does not store IP addresses, cookies, credentials, or complete User-Agent strings. Posting identities are unverified.
 
-```sql
-DELETE FROM events WHERE occurred_at < datetime('now','-7 days');
-```
-
-Because timestamps are ISO 8601 with `T`, use an ISO-compatible comparison instead when implementing an automated deletion job; the above illustrates the policy, not a production-ready scheduled query. Do not schedule cleanup until its behavior has been tested. Retain independent aggregated figures before deleting events.
+- Keep event records during the defined observation and analysis period, subject to a documented review and deletion policy before deployment.
+- The first 30 days are an interim evaluation, **not** an automatic service shutdown or deletion deadline.
+- Do not publish raw events if they could identify people. Share aggregated reports.
+- Cloudflare platform logs have independent retention and privacy settings; verify them separately.
+- Provide a removal and privacy inquiry channel and document any event deletion in the experiment log.
+- Monitor D1 storage/cost; archiving or aggregated export can be introduced in a later phase without silently destroying research data.
+- Use a controlled, documented retention review rather than an arbitrary seven-day automatic purge.
 
 ## Observation integrity
 
