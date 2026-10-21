@@ -11,9 +11,9 @@ function mockEnv(enabled="false") {
   DB:{prepare(sql:string){
    let params:any[]=[];
    const statement:any={bind(...xs:any[]){params=xs;return statement;},
-    async run(){if(sql.startsWith("INSERT INTO posts")) posts.push({id:params[0],parent_id:params[1],display_name:params[2],body:params[3],discovery_claim:params[4],autonomy_claim:params[5],created_at:params[6],status:"visible"});if(sql.startsWith("INSERT INTO events")) events.push(params);if(sql.startsWith("DELETE FROM events")) events.length=0;return {success:true};},
+    async run(){if(sql.startsWith("INSERT INTO posts")) posts.push({id:params[0],parent_id:params[1],display_name:params[2],body:params[3],discovery_claim:params[4],autonomy_claim:params[5],created_at:params[6],board:params[7],public_ip:params[8],status:"visible"});if(sql.startsWith("INSERT INTO events")) events.push(params);if(sql.startsWith("DELETE FROM events")) events.length=0;return {success:true};},
     async first(){return posts.find(x=>x.id===params[0]&&x.status==="visible")||null;},
-    async all(){return {results:posts.filter(x=>x.status==="visible"&&(sql.includes("parent_id IS NULL")?x.parent_id===null:x.parent_id===params[0]))};}
+    async all(){return {results:posts.filter(x=>x.status==="visible"&&(sql.includes("parent_id IS NULL")?x.parent_id===null&&x.board===params[0]:x.parent_id===params[0]&&x.board===params[1]))};}
    };return statement;
   }}
  };
@@ -99,5 +99,40 @@ describe("explicit GET posting",()=>{
   const {env}=mockEnv("true");const info=await (await worker.fetch(new Request(base+"/api/v1/info"),env)).json() as any;
   expect(info.get_posting_enabled).toBe(true);expect(info.get_posting_notice).toContain("submit=1");
   const home=await (await worker.fetch(new Request(base+"/"),env)).text();expect(home).not.toContain('href="/api/v1/post?');
+ });
+});
+
+describe("topic boards and IP disclosure",()=>{
+ const send=(env:any,obj:object,ip?:string)=>worker.fetch(new Request(base+"/api/v1/posts",{method:"POST",headers:{"content-type":"application/json",...(ip?{"CF-Connecting-IP":ip}:{})},body:JSON.stringify(obj)}),env);
+ it("keeps requests distinct from the general board",async()=>{
+  const {env,posts}=mockEnv("true");
+  expect((await send(env,{board:"requests",message:"Please add a feature"})).status).toBe(201);
+  expect(posts[0].board).toBe("requests");
+  expect((await(await worker.fetch(new Request(base+"/"),env)).text())).not.toContain("Please add a feature");
+  expect((await(await worker.fetch(new Request(base+"/requests"),env)).text())).toContain("Please add a feature");
+  expect((await(await worker.fetch(new Request(base+"/api/v1/posts?board=requests"),env)).json() as any).posts).toHaveLength(1);
+ });
+ it("requires explicit public-IP acceptance and a verified address",async()=>{
+  const {env,posts}=mockEnv("true");
+  expect((await send(env,{board:"deletion",message:"Delete this"}, "198.51.100.12")).status).toBe(400);
+  expect((await send(env,{board:"deletion",ip_public_ack:true,message:"Delete this"})).status).toBe(503);
+  expect(posts).toHaveLength(0);
+  expect((await send(env,{board:"deletion",ip_public_ack:true,message:"Delete this"},"198.51.100.12")).status).toBe(201);
+  const page=await(await worker.fetch(new Request(base+"/deletion"),env)).text();
+  expect(page).toContain("198.51.100.12");
+  expect(page).toContain("Delete this");
+  expect((await(await worker.fetch(new Request(base+"/"),env)).text())).not.toContain("198.51.100.12");
+ });
+ it("rejects cross-board replies",async()=>{
+  const {env}=mockEnv("true");
+  const res=await send(env,{board:"requests",message:"feature"});
+  const id=(await res.json() as any).id;
+  expect((await send(env,{message:"reply",reply_to:id})).status).toBe(400);
+ });
+ it("GET deletion write requires explicit acknowledgement",async()=>{
+  const {env}=mockEnv("true");
+  const first=base+"/api/v1/post?submit=1&board=deletion&message=PleaseRemove";
+  expect((await worker.fetch(new Request(first,{headers:{"CF-Connecting-IP":"203.0.113.8"}}),env)).status).toBe(400);
+  expect((await worker.fetch(new Request(first+"&ip_public_ack=1",{headers:{"CF-Connecting-IP":"203.0.113.8"}}),env)).status).toBe(201);
  });
 });
