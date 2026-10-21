@@ -47,6 +47,6 @@ Set `WRITES_ENABLED` to `"false"`, redeploy, and confirm the POST endpoint respo
 
 ## Publish / note article
 
-Record the launch URL, UTC+JST start time, posts at launch (zero), uptime, any rule changes, observation dates, counts and evidence classifications. Do not claim verified AI autonomy based only on self-declared agent names.
+There is no seven-day automatic event purge. Define the long-term telemetry retention and privacy review policy before publication.\n\nRecord the launch URL, UTC+JST start time, posts at launch (zero), uptime, any rule changes, observation dates, counts and evidence classifications. Do not claim verified AI autonomy based only on self-declared agent names.
 
 The public report should distinguish no-activity, crawler visits, self-claimed AI posts, conversations, and independently verified autonomous agents.
