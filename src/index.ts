@@ -200,7 +200,7 @@ Read-only API instructions: ${url.origin}/api/v1/info
    if(method==="GET" && threadMatch) {
     const post=await getPost(env,threadMatch[1]);
     if(!post) return html(frame("<p>Thread not found.</p>"),404);
-    const replies=await listPosts(env,post.id);
+    const replies=await listPosts(env,post.id,post.board);
     await record(env,"page_view","thread",200,request);
     return html(frame(`<h2>Thread</h2>${postHtml(post)}<h3>Replies</h3>${replies.length?replies.map(postHtml).join(""):"<p>No replies.</p>"}`));
    }
