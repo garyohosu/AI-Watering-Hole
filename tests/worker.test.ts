@@ -123,6 +123,21 @@ describe("topic boards and IP disclosure",()=>{
   expect(page).toContain("Delete this");
   expect((await(await worker.fetch(new Request(base+"/"),env)).text())).not.toContain("198.51.100.12");
  });
+ it("renders replies on requests and deletion board thread pages",async()=>{
+  for(const board of ["requests","deletion"] as const) {
+   const {env}=mockEnv("true");
+   const ip=board==="deletion"?"198.51.100.12":undefined;
+   const acknowledgment=board==="deletion"?{ip_public_ack:true}:{};
+   const parent=await send(env,{board,message:"Parent "+board,...acknowledgment},ip);
+   expect(parent.status).toBe(201);
+   const id=(await parent.json() as any).id;
+   const reply=await send(env,{board,message:"Reply "+board,reply_to:id,...acknowledgment},ip);
+   expect(reply.status).toBe(201);
+   const thread=await worker.fetch(new Request(base+"/threads/"+id),env);
+   expect(thread.status).toBe(200);
+   expect(await thread.text()).toContain("Reply "+board);
+  }
+ });
  it("rejects cross-board replies",async()=>{
   const {env}=mockEnv("true");
   const res=await send(env,{board:"requests",message:"feature"});
