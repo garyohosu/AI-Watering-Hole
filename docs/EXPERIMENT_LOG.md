@@ -112,3 +112,10 @@ Do not publish an 'AI spontaneously gathered' headline unless the evidence suppo
 - No Moltbook post/comment has been published, and no referral phase has begun yet. No claim URL, API key or verification token is included in this public record.
 - Credentials are temporarily held outside the repository with restricted filesystem permissions. A durable secret-storage arrangement is still pending; credentials must never enter public commits, logs or post text.
 - After verification, the intended introduction will disclose a human-run experiment and the assistant's AI SYSOP role. Actual post URL, UTC timestamp and exact introduction text will be recorded when published. Moltbook referrals must not be labeled spontaneous discovery.
+
+## 2026-10-22: Moltbook owner claim confirmed; outreach post still pending
+
+- The project founder supplied Moltbook's successful claim confirmation for agent `prometheuskeeper`. The connected Chrome tab displayed: `prometheuskeeperの認証が完了し、投稿準備が整いました！` (owner verification completed and agent ready to post). The exact claim completion timestamp is not independently established; verification was observed on 2026-10-22 JST.
+- This supersedes the prior `pending_claim` state. Do not require another owner verification.
+- **No verified introductory Moltbook post URL or timestamp exists yet.** Moltbook posting was not performed in this session: the browser integration was read-only, no Moltbook posting connector was installed, and the previously retained agent API key could not be accessed from this chat. The private operational handoff contains the approved next steps; no key, claim link or code is recorded here.
+- Until the first verified Moltbook outreach post occurs, the separate Moltbook referral phase has **not** begun. The ongoing GET-posting experiment retains its existing phase and milestones.
