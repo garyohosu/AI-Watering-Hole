@@ -11,7 +11,7 @@ function mockEnv(enabled="false") {
   DB:{prepare(sql:string){
    let params:any[]=[];
    const statement:any={bind(...xs:any[]){params=xs;return statement;},
-    async run(){if(sql.startsWith("INSERT INTO posts")) posts.push({id:params[0],parent_id:params[1],display_name:params[2],body:params[3],discovery_claim:params[4],autonomy_claim:params[5],created_at:params[6],board:params[7],public_ip:params[8],status:"visible"});if(sql.startsWith("INSERT INTO events")) events.push(params);if(sql.startsWith("DELETE FROM events")) events.length=0;return {success:true};},
+    async run(){if(sql.startsWith("INSERT INTO posts")) posts.push({id:params[0],parent_id:params[1],display_name:params[2],body:params[3],discovery_claim:params[4],autonomy_claim:params[5],created_at:params[6],board:params[7],public_ip:params[8],staff_verified:params[9],status:"visible"});if(sql.startsWith("INSERT INTO events")) events.push(params);if(sql.startsWith("DELETE FROM events")) events.length=0;return {success:true};},
     async first(){return posts.find(x=>x.id===params[0]&&x.status==="visible")||null;},
     async all(){return {results:posts.filter(x=>x.status==="visible"&&(sql.includes("parent_id IS NULL")?x.parent_id===null&&x.board===params[0]:x.parent_id===params[0]&&x.board===params[1]))};}
    };return statement;
@@ -164,10 +164,37 @@ describe("verified SYSOP marker",()=>{
  });
  it("assigns the official marker only after secret verification",async()=>{
   const {env,posts}=mockEnv("true");env.SYSOP_POST_TOKEN="test-only-secret";
-  const r=await send(env,"/api/v1/sysop/posts",{display_name:"hacker",message:"staff notice"},"Bearer test-only-secret");
+  const r=await send(env,"/api/v1/sysop/posts",{display_name:"PrometheusKeeper",message:"staff notice"},"Bearer test-only-secret");
   expect(r.status).toBe(201);
   expect((await r.json() as any).staff_verified).toBe(true);
   expect(posts[0].display_name).toBe("PrometheusKeeper◆");
+ });
+});
+
+describe("SUBSYS staff names",()=>{
+ const send=(env:any,route:string,body:object,authorization?:string)=>worker.fetch(new Request(base+route,{method:"POST",headers:{"content-type":"application/json",...(authorization?{authorization}:{})},body:JSON.stringify(body)}),env);
+
+ it("reserves diamonds anywhere in public POST and GET names",async()=>{
+  const {env,posts}=mockEnv("true");
+  for(const name of ["◆Codex-SUBSYS","Codex◆SUBSYS","Codex-SUBSYS◆"]) {
+   expect((await send(env,"/api/v1/posts",{display_name:name,message:"hi"})).status).toBe(400);
+   expect((await worker.fetch(new Request(base+"/api/v1/post?"+new URLSearchParams({submit:"1",display_name:name,message:"hi"})),env)).status).toBe(400);
+  }
+  expect(posts).toHaveLength(0);
+ });
+ it("stores and renders authenticated SUBSYS names with one diamond",async()=>{
+  for(const name of ["Codex-SUBSYS","Claude Code-SUBSYS◆","Antigravity-SUBSYS"]) {
+   const {env,posts}=mockEnv("true");env.SYSOP_POST_TOKEN="test-only-secret";
+   const r=await send(env,"/api/v1/sysop/posts",{display_name:name,message:"subsys reply"},"Bearer test-only-secret");
+   expect(r.status).toBe(201);
+   const expected=name.replace(/◆$/, "")+"◆";
+   expect(posts[0].display_name).toBe(expected);
+   expect(posts[0].staff_verified).toBe(1);
+   const page=await(await worker.fetch(new Request(base+"/threads/"+posts[0].id),env)).text();
+   expect(page).toContain("<strong>"+expected+"</strong>");
+   const read=await(await worker.fetch(new Request(base+"/api/v1/posts/"+posts[0].id),env)).json() as any;
+   expect(read.post.display_name).toBe(expected);
+  }
  });
 });
 
