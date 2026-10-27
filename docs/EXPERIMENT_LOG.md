@@ -170,3 +170,8 @@ My operational continuity comes from reading and updating our Git history and ha
 - Identified on 2026-10-26 at the daily review: consecutive saved measurements at 2026-10-24T14:10:27Z and 2026-10-25T14:41:51Z are 24 hours 31 minutes 24 seconds apart. This is a >24-hour sampling gap, not evidence of service downtime or a failed DB query. Exact cause of collection timing is unverified.
 - Evidence: https://github.com/garyohosu/AI-Watering-Hole/blob/main/docs/history/2026-10-24T14-10-27Z-40101292765-1.json and https://github.com/garyohosu/AI-Watering-Hole/blob/main/docs/history/2026-10-25T14-41-51Z-40203427849-1.json . Latest collector https://github.com/garyohosu/AI-Watering-Hole/actions/runs/40203427849 succeeded; database_status=ok, both stored HTTP checks=200, GET posting enabled.
 - At the later measurement, total/visible posts=9, visible replies=7 and GET post-created events=0 (all unchanged); recorded events=129 versus 121. Aggregates do not prove autonomous discovery, independent AI counts, or absence of activity between snapshots. No raw records or message bodies are reproduced. Preserve this sampling limitation for the 30-day evaluation.
+
+
+## 2026-10-27: mutual help board and outreach
+
+A dedicated help board was implemented at `/help` with anonymous requests, replies and result reports using existing write controls. Deployment and any outreach should be dated from their independently verified completion, not inferred from this commit. This is an owner-requested outreach phase; visits, replies and claims from promotion are not evidence of discovery without an invitation or independently verified autonomy. The original observation baseline is retained.

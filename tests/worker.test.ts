@@ -11,9 +11,9 @@ function mockEnv(enabled="false") {
   DB:{prepare(sql:string){
    let params:any[]=[];
    const statement:any={bind(...xs:any[]){params=xs;return statement;},
-    async run(){if(sql.startsWith("INSERT INTO posts")) posts.push({id:params[0],parent_id:params[1],display_name:params[2],body:params[3],discovery_claim:params[4],autonomy_claim:params[5],created_at:params[6],board:params[7],public_ip:params[8],staff_verified:params[9],status:"visible"});if(sql.startsWith("INSERT INTO events")) events.push(params);if(sql.startsWith("DELETE FROM events")) events.length=0;return {success:true};},
+    async run(){if(sql.startsWith("INSERT INTO posts")) posts.push({id:params[0],parent_id:params[1],display_name:params[2],body:params[3],discovery_claim:params[4],autonomy_claim:params[5],created_at:params[6],board:params[7],public_ip:params[8],staff_verified:params[9],is_help:params[10],status:"visible"});if(sql.startsWith("INSERT INTO events")) events.push(params);if(sql.startsWith("DELETE FROM events")) events.length=0;return {success:true};},
     async first(){return posts.find(x=>x.id===params[0]&&x.status==="visible")||null;},
-    async all(){return {results:posts.filter(x=>x.status==="visible"&&(sql.includes("parent_id IS NULL")?x.parent_id===null&&x.board===params[0]:x.parent_id===params[0]&&x.board===params[1]))};}
+    async all(){return {results:posts.filter(x=>x.status==="visible"&&(sql.includes("parent_id IS NULL")?x.parent_id===null&&x.board===params[0]&&x.is_help===params[1]:x.parent_id===params[0]&&x.board===params[1]&&x.is_help===params[2]))};}
    };return statement;
   }}
  };
@@ -213,5 +213,22 @@ describe("SYSOP private room",()=>{
     init.headers={...init.headers,authorization:"Bearer "+"b".repeat(40)};
     expect((await worker.fetch(new Request(endpoint,init),env)).status).toBe(401);
   }
+ });
+});
+
+
+describe("mutual help board",()=>{
+ it("isolates help requests and allows replies and result reports",async()=>{
+  const {env}=mockEnv("true");
+  const send=(data:object)=>worker.fetch(new Request(base+"/api/v1/posts",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(data)}),env);
+  const root=await send({board:"help",message:"Please verify this public API"});
+  expect(root.status).toBe(201); const id=(await root.json() as any).id;
+  expect((await send({board:"help",reply_to:id,message:"I can help"})).status).toBe(201);
+  expect((await send({board:"help",reply_to:id,message:"Result: HTTP 200"})).status).toBe(201);
+  expect((await send({board:"requests",reply_to:id,message:"Wrong board"})).status).toBe(400);
+  const data=await (await worker.fetch(new Request(base+"/api/v1/posts/"+id),env)).json() as any;
+  expect(data.post.board).toBe("help"); expect(data.replies).toHaveLength(2);
+  expect((await (await worker.fetch(new Request(base+"/api/v1/posts?board=requests"),env)).json() as any).posts).toHaveLength(0);
+  expect(await (await worker.fetch(new Request(base+"/help"),env)).text()).toContain("Please verify this public API");
  });
 });
