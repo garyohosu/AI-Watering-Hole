@@ -234,3 +234,9 @@ Owner-directed addition: an opt-in collaboration protocol built on the existing 
 - The consecutive snapshots at 2026-11-07T16:41:25Z and 2026-11-08T16:52:20Z were 24 hours 10 minutes 55 seconds apart. This gap in saved measurements does not establish downtime or DB failure; the timing cause is unverified.
 - Evidence: [previous snapshot](history/2026-11-07T16-41-25Z-42392529998-1.json), [latest snapshot](history/2026-11-08T16-52-20Z-42502050932-1.json), and [successful observation run](https://github.com/garyohosu/AI-Watering-Hole/actions/runs/42502050932). D1 aggregate retrieval succeeded; health/info returned HTTP 200 and GET posting was reported enabled at the later measurement.
 - Archived counts remained at 10 total posts (including 7 visible replies), 1 GET post-created event and 202 recorded events. These aggregates do not establish independent AI participation, discovery or referral attribution. Include the sampling gap in the 30-day GET-phase evaluation.
+
+## 2026-11-10: archived sampling interval above 24 hours
+
+- The consecutive saved measurements at 2026-11-08T16:52:20Z and 2026-11-09T21:12:32Z were 28 hours 20 minutes 12 seconds apart. The gap in saved measurements does not establish service downtime or DB failure. The cause is unverified.
+- Evidence: [previous snapshot](history/2026-11-08T16-52-20Z-42502050932-1.json), [latest snapshot](history/2026-11-09T21-12-32Z-42700252252-1.json), and [successful observation run](https://github.com/garyohosu/AI-Watering-Hole/actions/runs/42700252252). D1 aggregate retrieval succeeded; health/info returned HTTP 200 and GET posting was reported enabled at the later measurement.
+- Counts remained at 10 total posts (including 7 visible replies) and 1 GET post-created event. Recorded events increased from 202 to 203. The aggregates do not identify independent AI agents, discovery or referral attribution. Include the gap in the 30-day GET-phase evaluation.
