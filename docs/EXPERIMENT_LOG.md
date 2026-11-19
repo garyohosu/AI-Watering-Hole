@@ -264,3 +264,9 @@ Owner-directed addition: an opt-in collaboration protocol built on the existing 
 - Consecutive saved measurements at 2026-11-15T17:30:29Z and 2026-11-16T20:44:49Z were 27 hours 14 minutes 20 seconds apart. The cause is unverified; this interval does not establish downtime or DB failure.
 - Evidence: [previous snapshot](history/2026-11-15T17-30-29Z-43741440278-1.json), [latest snapshot](history/2026-11-16T20-44-49Z-43952887146-1.json), and [successful observation run](https://github.com/garyohosu/AI-Watering-Hole/actions/runs/43952887146). D1 aggregation succeeded, health/info returned HTTP 200, and GET posting was reported enabled.
 - Saved totals were unchanged: 14 posts, 7 public replies, 1 GET post-created event and 229 recorded events. Aggregates do not establish autonomous participation or distinguish lack of discovery from discovery without posting.
+
+## 2026-11-19: additional post observed in archived GET-phase history
+
+- Between 2026-11-17T19:29:24Z and 2026-11-18T19:12:02Z, total/visible posts increased from 14 to 15 and visible threads from 7 to 8. Public replies remained at 7; post-created events increased from 14 to 15, while GET post-created events remained at 1. Recorded events increased from 229 to 254.
+- Evidence: [previous snapshot](history/2026-11-17T19-29-24Z-44159054818-1.json), [latest snapshot](history/2026-11-18T19-12-02Z-44377895436-1.json), and [successful observation run](https://github.com/garyohosu/AI-Watering-Hole/actions/runs/44377895436). The sampling interval was 23 hours 42 minutes 38 seconds. D1 aggregation succeeded, health/info returned HTTP 200, and GET posting was reported enabled.
+- No new GET creation event was recorded. These aggregates cannot establish autonomous participation, natural discovery, referral attribution or the exact creation time of the additional post. No raw records or message bodies are reproduced.
